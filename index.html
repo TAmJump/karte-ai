@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>名医カルテAI ｜ 診療支援</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=Noto+Serif+JP:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bone:#F2EEE4; --paper:#FBF9F3; --ink:#1B1815; --stone:#6A6157; --faint:#938A7D;
+  --line:#DCD4C5; --line-soft:#E8E2D6; --accent:#A6362B; --accent-deep:#7E2A22;
+  --warn-bg:#FBEEEC; --warn-bd:#E4BDB6; --ok:#4A6B4F; --mid:#8A6A2E;
+  --serif:"Noto Serif JP",serif; --display:"Fraunces",serif;
+  --sans:"Zen Kaku Gothic New","Inter",sans-serif; --util:"Inter",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bone);color:var(--ink);font-family:var(--sans);line-height:1.7;-webkit-font-smoothing:antialiased;font-feature-settings:"palt" 1}
+.wrap{max-width:1280px;margin:0 auto;padding:0 28px}
+
+header{position:sticky;top:0;z-index:30;background:rgba(242,238,228,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line-soft)}
+.nav{display:flex;align-items:baseline;justify-content:space-between;height:62px}
+.brand{display:flex;align-items:baseline;gap:12px}
+.brand .mk{font-family:var(--serif);font-weight:600;font-size:18px;letter-spacing:.04em}
+.brand .en{font-family:var(--util);font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--faint)}
+.nav .mode{font-family:var(--util);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+
+.disclaimer{background:var(--paper);border-bottom:1px solid var(--line-soft);font-size:12px;color:var(--stone);padding:9px 0;text-align:center;letter-spacing:.01em}
+
+main{padding:30px 0 90px}
+.grid{display:grid;grid-template-columns:410px 1fr;gap:30px;align-items:start}
+@media(max-width:920px){.grid{grid-template-columns:1fr;gap:24px}}
+
+.panel{background:var(--paper);border:1px solid var(--line)}
+.left{position:sticky;top:80px}
+@media(max-width:920px){.left{position:static}}
+.panel-h{padding:15px 22px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between}
+.panel-h .t{font-family:var(--serif);font-size:15px;font-weight:500}
+.panel-h .n{font-family:var(--display);font-size:13px;color:var(--accent)}
+.panel-b{padding:22px}
+
+.label{font-family:var(--util);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:8px}
+textarea{width:100%;min-height:210px;resize:vertical;background:var(--bone);border:1px solid var(--line);padding:14px;font-family:var(--sans);font-size:14px;line-height:1.85;color:var(--ink);outline:none}
+textarea:focus{border-color:var(--accent)}
+.row{margin-bottom:18px}.row:last-child{margin-bottom:0}
+select{width:100%;background:var(--bone);border:1px solid var(--line);padding:11px 12px;font-family:var(--sans);font-size:14px;color:var(--ink);outline:none}
+select:focus{border-color:var(--accent)}
+
+.toggle{display:flex;align-items:flex-start;gap:11px;background:var(--bone);border:1px solid var(--line);padding:13px 14px;cursor:pointer}
+.toggle input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex:0 0 auto}
+.toggle .tt{font-size:13px;color:var(--ink);font-weight:500}
+.toggle .td{font-size:11.5px;color:var(--stone);margin-top:3px;line-height:1.7}
+.preview-link{font-family:var(--util);font-size:11px;letter-spacing:.06em;color:var(--accent);cursor:pointer;margin-top:9px;display:inline-block;border-bottom:1px solid var(--line)}
+.preview-box{margin-top:9px;background:var(--bone);border:1px solid var(--line);padding:12px;font-size:12px;line-height:1.8;white-space:pre-wrap;color:var(--stone);max-height:170px;overflow:auto;display:none}
+
+.drop{border:1px dashed var(--line);background:var(--bone);padding:16px;text-align:center;color:var(--stone);font-size:13px;cursor:pointer;transition:.15s}
+.drop:hover,.drop.over{border-color:var(--accent);color:var(--accent)}
+.drop .sub{font-size:11px;color:var(--faint);margin-top:4px}
+.filechip{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;background:var(--bone);border:1px solid var(--line);padding:9px 12px;font-size:12.5px}
+.filechip .x{cursor:pointer;color:var(--accent);font-family:var(--util);font-size:11px}
+.filechip img{height:34px;width:34px;object-fit:cover;border:1px solid var(--line)}
+.filechip .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.filenote{font-size:11px;color:var(--faint);margin-top:7px;line-height:1.6}
+
+.btn{width:100%;background:var(--ink);color:var(--bone);border:0;padding:15px;font-family:var(--sans);font-weight:500;font-size:14.5px;letter-spacing:.05em;cursor:pointer;transition:.15s;margin-top:4px}
+.btn:hover{background:var(--accent-deep)}
+.btn:disabled{background:var(--faint);cursor:not-allowed}
+.btn.sec{background:transparent;color:var(--stone);border:1px solid var(--line);padding:10px;font-size:12.5px;margin-top:10px}
+.btn.sec:hover{border-color:var(--accent);color:var(--accent);background:transparent}
+
+.out-empty{padding:70px 30px;text-align:center;color:var(--faint)}
+.out-empty .big{font-family:var(--serif);font-size:18px;color:var(--stone);margin-bottom:8px}
+.out-empty p{font-size:13px;line-height:1.9}
+
+.stage{padding:16px 22px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:12px;font-size:13px;color:var(--stone)}
+.spin{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s 1s linear infinite;flex:0 0 auto}
+@keyframes s{to{transform:rotate(360deg)}}
+
+.alert{background:var(--warn-bg);border:1px solid var(--warn-bd);border-left:4px solid var(--accent);padding:16px 18px;margin-bottom:22px;color:var(--accent-deep);font-size:13.5px;line-height:1.8}
+.alert .h{font-family:var(--util);font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;margin-bottom:8px}
+.alert .flags{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.alert .flags span{background:#fff;border:1px solid var(--warn-bd);padding:5px 11px;font-size:12px}
+
+.profile{background:var(--ink);color:var(--bone);padding:24px 26px;margin-bottom:24px}
+.profile .pmeta{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+.profile .sex{font-family:var(--serif);font-size:25px;font-weight:500}
+.profile .age{font-family:var(--display);font-size:33px;line-height:1}
+.profile .age small{font-size:15px;color:#c9c0b2;margin-left:3px}
+.profile .band{font-family:var(--util);font-size:11px;letter-spacing:.14em;color:#c9c0b2;border:1px solid #4a443c;padding:4px 10px}
+.profile .psum{font-size:13.5px;color:#e6e0d5;margin-top:15px;line-height:1.9;border-top:1px solid #3a352e;padding-top:14px}
+
+.block{margin-bottom:24px}
+.block .bl{font-family:var(--util);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:13px;display:flex;justify-content:space-between;align-items:baseline}
+.block .bl .ref{background:var(--paper);border:1px solid var(--line-soft);color:var(--stone);font-size:9px;letter-spacing:.14em;padding:2px 8px;text-transform:none}
+
+.field{padding:10px 0;border-bottom:1px solid var(--line-soft)}
+.field:last-child{border-bottom:0}
+.field .fk{font-family:var(--util);font-size:10px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase}
+.field .fv{font-size:15px;color:var(--ink);margin-top:4px;line-height:1.75}
+.field .fv.serif{font-family:var(--serif);font-size:16px}
+.field .fv.empty{color:var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:5px}
+.chips span{background:var(--bone);border:1px solid var(--line);padding:5px 11px;font-size:13px}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-family:var(--util);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);text-align:left;font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line-soft);color:var(--ink);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.flag-h{color:var(--accent);font-weight:600}.flag-l{color:#2f6b8a;font-weight:600}
+
+/* 鑑別候補 */
+.ddx{border:1px solid var(--line);margin-bottom:12px;background:var(--paper)}
+.ddx-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line-soft)}
+.ddx-h .nm{font-family:var(--serif);font-size:16px;font-weight:500}
+.lk{font-family:var(--util);font-size:10px;letter-spacing:.12em;padding:4px 10px;border:1px solid var(--line)}
+.lk.h{color:#fff;background:var(--accent);border-color:var(--accent)}
+.lk.m{color:var(--mid);border-color:#d8c69a;background:#f7f0df}
+.lk.l{color:var(--stone)}
+.ddx-b{padding:6px 16px 15px}
+.ddx-b .seg{padding:11px 0;border-bottom:1px solid var(--line-soft)}
+.ddx-b .seg:last-child{border-bottom:0}
+.ddx-b .sk{font-family:var(--util);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+.ddx-b ul{list-style:none}
+.ddx-b li{font-size:13.5px;color:var(--ink);padding:3px 0 3px 15px;position:relative;line-height:1.75}
+.ddx-b li::before{content:"–";position:absolute;left:0;color:var(--accent)}
+.ddx-b .against li::before{content:"?";color:var(--mid)}
+
+.reclist{list-style:none}
+.reclist li{padding:9px 0 9px 16px;border-bottom:1px solid var(--line-soft);position:relative;font-size:14px;line-height:1.8}
+.reclist li:last-child{border-bottom:0}
+.reclist li::before{content:"–";position:absolute;left:0;color:var(--accent)}
+
+.est{display:flex;align-items:baseline;gap:14px;padding:4px 0}
+.est .num{font-family:var(--display);font-size:28px;color:var(--accent);line-height:1}
+.est-note{font-size:12.5px;color:var(--stone);margin-top:8px;line-height:1.8}
+
+.reserved{background:var(--bone);border:1px dashed var(--line);padding:14px 16px;font-size:12.5px;color:var(--faint);line-height:1.8}
+
+/* 文書ドラフト */
+.docbar{display:flex;gap:8px;flex-wrap:wrap}
+.docbar button{flex:1;min-width:120px;background:transparent;border:1px solid var(--line);color:var(--ink);padding:11px;font-family:var(--sans);font-size:13px;cursor:pointer;transition:.15s}
+.docbar button:hover{border-color:var(--accent);color:var(--accent)}
+.docout{margin-top:14px;background:var(--bone);border:1px solid var(--line);padding:16px;font-size:13.5px;line-height:1.95;white-space:pre-wrap;color:var(--ink);display:none}
+.docout .doch{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+.docout .doch b{font-family:var(--util);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.copy{font-family:var(--util);font-size:11px;color:var(--stone);cursor:pointer;border-bottom:1px solid var(--line)}
+
+.memo{width:100%;min-height:70px;background:var(--bone);border:1px solid var(--line);padding:12px;font-family:var(--sans);font-size:13.5px;color:var(--ink);outline:none;resize:vertical}
+.memo:focus{border-color:var(--accent)}
+
+.meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:8px;padding-top:16px;border-top:1px solid var(--line)}
+.conf{font-size:12.5px;color:var(--stone)}
+.conf b{font-family:var(--util);font-size:11px;letter-spacing:.1em;color:var(--accent);margin-left:6px}
+.foot-note{font-size:11.5px;color:var(--faint);margin-top:14px;line-height:1.7}
+.err{background:var(--warn-bg);border:1px solid var(--warn-bd);padding:16px 18px;color:var(--accent-deep);font-size:13px;line-height:1.8}
+.raw{margin-top:14px;background:var(--bone);border:1px solid var(--line);padding:12px;font-family:var(--util);font-size:11.5px;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto;color:var(--stone)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="nav">
+      <div class="brand"><span class="mk">名医カルテAI</span><span class="en">Doctor Memory AI</span></div>
+      <div class="mode">診療支援 ／ カルテ取込・分析・鑑別候補</div>
+    </div>
+  </div>
+</header>
+
+<div class="disclaimer">本ツールは医師向けの診療支援情報を提示するもので、医療機器認証を受けた診断装置ではありません。鑑別候補・副作用・治癒期間等は参考情報であり、確定診断・治療・処方の判断は医師が行ってください。</div>
+
+<main>
+  <div class="wrap">
+    <div class="grid">
+
+      <div class="panel left">
+        <div class="panel-h"><span class="t">カルテを取り込む</span><span class="n">01</span></div>
+        <div class="panel-b">
+          <div class="row">
+            <label class="toggle">
+              <input type="checkbox" id="deid" checked>
+              <span><span class="tt">個人情報を取り込まない（匿名化）</span>
+              <span class="td">送信前に、氏名・生年月日（年齢へ変換）・電話・住所・保険番号・患者ID・メールをこの端末内でマスクします。日本語氏名は表記により取りこぼす場合があります。抽出結果に識別情報は含めません。</span></span>
+            </label>
+            <span class="preview-link" id="pvlink">匿名化後の本文を確認</span>
+            <div class="preview-box" id="pvbox"></div>
+          </div>
+          <div class="row">
+            <label class="label">カルテ本文（貼り付け）</label>
+            <textarea id="text" placeholder="診療録・紹介状・検査結果・処方記録などを貼り付けてください。"></textarea>
+          </div>
+          <div class="row">
+            <label class="label">または 画像・PDFを取り込む</label>
+            <div class="drop" id="drop">ファイルをドロップ／クリックで選択<div class="sub">スキャン画像（JPG・PNG）または PDF</div></div>
+            <input type="file" id="file" accept="image/png,image/jpeg,application/pdf" hidden>
+            <div id="filebox"></div>
+            <div class="filenote">画像・PDFは端末内でのマスクができないため、匿名化は抽出処理側で行い、識別情報を出力に含めません。</div>
+          </div>
+          <div class="row">
+            <label class="label">診療科（任意・精度の補助）</label>
+            <select id="dept">
+              <option value="">指定なし</option>
+              <option>内科</option><option>消化器内科</option><option>循環器内科</option>
+              <option>呼吸器内科</option><option>整形外科</option><option>小児科</option><option>在宅医療</option>
+            </select>
+          </div>
+          <button class="btn" id="run">分析する</button>
+          <button class="btn sec" id="sample">サンプルを入力</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><span class="t">診療支援結果</span><span class="n">02</span></div>
+        <div id="output">
+          <div class="panel-b"><div class="out-empty">
+            <div class="big">カルテを取り込むと結果が表示されます</div>
+            <p>症例プロファイルを構造化し、鑑別診断候補・確認すべき情報・レッドフラッグ・文書ドラフトを提示します。<br>いずれも診療補助情報です。</p>
+          </div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const textEl=$("#text"),fileEl=$("#file"),dropEl=$("#drop"),fileBox=$("#filebox"),
+      deptEl=$("#dept"),runEl=$("#run"),outEl=$("#output"),deidEl=$("#deid"),
+      pvlink=$("#pvlink"),pvbox=$("#pvbox");
+let attached=null, STATE={profile:null,ddx:null};
+
+/* ===== API接続先 =====
+   ・Claude.ai上でのプレビュー時：この既定値のままで動作
+   ・独自ドメイン配信時：下のURLを自分のCloudflare Worker（例 https://karute-api.xxxx.workers.dev/v1/messages）に差し替える */
+const API_ENDPOINT="https://api.anthropic.com/v1/messages";
+
+/* ===== 匿名化（端末内） ===== */
+function calcAge(str){
+  let y=null,m=str.match(/(明治|大正|昭和|平成|令和)\s*(\d{1,2})\s*年/);
+  if(m){const base={"明治":1867,"大正":1911,"昭和":1925,"平成":1988,"令和":2018}[m[1]];y=base+parseInt(m[2],10);}
+  if(!y){m=str.match(/((?:18|19|20)\d{2})\s*[-\/年.]/);if(m)y=parseInt(m[1],10);}
+  if(!y)return null;const age=(new Date().getFullYear())-y;return (age>=0&&age<=120)?age:null;
+}
+function deidentify(t){
+  let s=t;
+  s=s.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g,"〔メール〕");
+  s=s.replace(/(生年月日|生年|ＤＯＢ|DOB)[\s:：]*((?:明治|大正|昭和|平成|令和)?[\s]*\d{1,4}[\s]*[年.\/\-][\s]*\d{1,2}[\s]*[月.\/\-][\s]*\d{1,2}[\s]*日?)/g,(a,l,v)=>{const g=calcAge(v);return g?`年齢:${g}歳（推定・匿名化）`:"〔生年月日〕";});
+  s=s.replace(/(生年月日|生年)[\s:：]*[^\n、,，。\s]{2,20}/g,"〔生年月日〕");
+  s=s.replace(/(被保険者番号|保険者番号|保険証番号|患者ID|患者番号|カルテ番号|診察券番号|受付番号|ＩＤ|ID)[\s:：]*[A-Za-z0-9\-－]{2,}/g,(a,l)=>l+":〔ID〕");
+  s=s.replace(/(氏\s*名|患者氏名|患者名|お名前|なまえ|フリガナ|ふりがな|カナ氏名|カナ)[\s:：]*([一-龥ぁ-んァ-ヶー々〆A-Za-z]+(?:[ ][一-龥ぁ-んァ-ヶー々〆A-Za-z]{1,6})?)(?:[ 　]*(?:様|殿|さん|君))?/g,(a,l)=>l+":〔氏名〕");
+  s=s.replace(/^[ \t　]*[一-龥ぁ-んァ-ヶー々〆A-Za-z]{2,12}(?:[ ][一-龥ぁ-んァ-ヶー々〆A-Za-z]{1,6})?[ 　]*(様|殿|さん|君|ちゃん)(?=\s|$)/gm,"〔氏名〕$1");
+  s=s.replace(/(住所|現住所|所在地|居住地)[\s:：]*[^\n]{2,60}/g,(a,l)=>l+":〔住所〕");
+  s=s.replace(/(?:〒|郵便番号[\s:：]*)\s?\d{3}[-ー－]?\d{4}/g,"〔郵便番号〕");
+  s=s.replace(/0\d{1,4}[-ー－()（）]\d{1,4}[-ー－()（）]?\d{3,4}/g,"〔電話〕");
+  s=s.replace(/(?<!\d)0\d{9,10}(?!\d)/g,"〔電話〕");
+  return s;
+}
+function currentText(){const raw=textEl.value.trim();return (deidEl.checked&&raw)?deidentify(raw):raw;}
+pvlink.onclick=()=>{
+  const raw=textEl.value.trim();
+  if(!raw){alert("カルテ本文を貼り付けてください。");return;}
+  if(!deidEl.checked){alert("匿名化がオフです。");return;}
+  const open=pvbox.style.display==="block";
+  pvbox.style.display=open?"none":"block";pvlink.textContent=open?"匿名化後の本文を確認":"匿名化後の本文を隠す";
+  if(!open)pvbox.textContent=deidentify(raw);
+};
+
+/* ===== ファイル ===== */
+dropEl.addEventListener("click",()=>fileEl.click());
+dropEl.addEventListener("dragover",e=>{e.preventDefault();dropEl.classList.add("over")});
+dropEl.addEventListener("dragleave",()=>dropEl.classList.remove("over"));
+dropEl.addEventListener("drop",e=>{e.preventDefault();dropEl.classList.remove("over");if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])});
+fileEl.addEventListener("change",()=>{if(fileEl.files[0])loadFile(fileEl.files[0])});
+function loadFile(f){
+  const ok=["image/png","image/jpeg","application/pdf"];
+  if(!ok.includes(f.type)){alert("JPG・PNG・PDF のみ対応しています。");return;}
+  const r=new FileReader();r.onload=()=>{attached={name:f.name,mediaType:f.type,b64:r.result.split(",")[1],isImage:f.type.startsWith("image/")};renderChip();};r.readAsDataURL(f);
+}
+function renderChip(){
+  if(!attached){fileBox.innerHTML="";return;}
+  const prev=attached.isImage?`<img src="data:${attached.mediaType};base64,${attached.b64}">`:"";
+  fileBox.innerHTML=`<div class="filechip">${prev}<span class="nm">${attached.name}</span><span class="x" id="rm">削除</span></div>`;
+  $("#rm").onclick=()=>{attached=null;fileEl.value="";renderChip();};
+}
+
+/* ===== サンプル ===== */
+$("#sample").onclick=()=>{
+  textEl.value="氏名：山田花子　生年月日：昭和32年6月14日　患者ID：0098231　TEL 090-1234-5678　住所：東京都中央区…\n女性。3日前からの咳と38.2℃の発熱で受診。倦怠感と食思不振あり。既往に2型糖尿病、高血圧。内服：メトホルミン、アムロジピン。バイタル：BT 38.2℃、BP 134/80、PR 96、SpO2 95%。胸部聴診で右下肺野にcoarse crackles。CRP 6.4、白血球 8200。胸部X線で右下肺野に浸潤影疑い。水分摂取やや不良。";
+  deptEl.value="内科";pvbox.style.display="none";pvlink.textContent="匿名化後の本文を確認";
+};
+
+/* ===== API ===== */
+async function callAPI(content){
+  const res=await fetch(API_ENDPOINT,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content}]})
+  });
+  if(!res.ok)throw new Error("API応答エラー ("+res.status+")");
+  const data=await res.json();
+  return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+}
+function parseJSON(s){
+  if(!s)return null;let t=s.replace(/```json|```/g,"").trim();
+  const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a<0||b<0)return null;t=t.slice(a,b+1);
+  try{return JSON.parse(t);}catch{return null;}
+}
+const esc=s=>(s||"").toString().replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const has=v=>v&&(Array.isArray(v)?v.length:String(v).trim().length);
+
+const P_PROFILE=`あなたは医師の診療を補助するカルテ構造化アシスタントです。以下のカルテを読み取り、症例プロファイルとして整理してください。
+厳守：個人情報（氏名・住所・電話・保険番号・患者ID・具体的生年月日・メール）は出力に一切含めない（年齢は歳/年代で表す）。sex,age,conditions,visit_reason,symptoms,diagnoses,prescriptions はカルテ記載のみ、記載がなければ空。新たな確定診断・新規処方を創作しない。adverse_risks,recovery_estimate,precautions は抽出した診断・処方に基づく一般的参考（要医師確認）。断定・指示表現は使わない。日本語・簡潔に。
+JSONのみ出力（前置き・コードフェンス無し）：
+{"sex":"","age":"例:68歳","age_band":"例:60代","conditions":[],"visit_reason":"","symptoms":[],"diagnoses":[{"name":"","type":"確定|鑑別|疑い"}],"prescriptions":[{"drug":"","dose":"","freq":"","duration":"","purpose":""}],"adverse_risks":[{"drug":"","common":"","serious":"","caution":""}],"recovery_estimate":{"days":"","note":""},"precautions":[],"followup":"","vitals":{"BT":"","BP":"","PR":"","SpO2":""},"labs":[{"name":"","value":"","unit":"","flag":"H|L|N"}],"summary":"","confidence":"高|中|低","source_notes":""}`;
+
+const P_DDX=`あなたは医師の診療を補助する診断支援アシスタントです。以下のカルテ内容と所見から、鑑別診断の候補を提示してください。これは確定診断ではなく、医師が確認・確定するための候補提示です。
+厳守：各候補は可能性（高/中/低）と、根拠となる所見、合致しない・要確認の点、確認/検査の候補を伴うこと。治療や処方は指示しない（確認・検査・問診の候補まで）。red_flagsは緊急性のある所見を列挙。断定・指示表現は使わず「可能性が考えられます」等の候補表現にする。日本語・簡潔に。
+JSONのみ出力（前置き・コードフェンス無し）：
+{"red_flags":[],"differentials":[{"name":"","likelihood":"高|中|低","supporting":[],"against":[],"confirm":[]}],"additional_history":[],"suggested_tests":[],"overall_note":"鑑別上の一般的注意（要医師確認）","confidence":"高|中|低"}`;
+
+runEl.onclick=async()=>{
+  const txt=currentText();
+  if(!txt && !attached){alert("カルテ本文の貼り付け、またはファイルの取り込みを行ってください。");return;}
+  runEl.disabled=true;runEl.textContent="分析中…";STATE={profile:null,ddx:null};
+  const dept=deptEl.value?`診療科：${deptEl.value}。`:"";
+  const fileBlock=attached?(attached.isImage
+    ?{type:"image",source:{type:"base64",media_type:attached.mediaType,data:attached.b64}}
+    :{type:"document",source:{type:"base64",media_type:"application/pdf",data:attached.b64}}):null;
+  const body=`${dept}\n--- カルテ内容 ---\n${txt||"（添付ファイルを参照）"}`;
+
+  outEl.innerHTML=`<div class="stage"><div class="spin"></div>症例プロファイルを構造化しています…</div>`;
+  try{
+    // Stage 1: profile
+    const c1=[];if(fileBlock)c1.push(fileBlock);c1.push({type:"text",text:`${P_PROFILE}\n\n${body}`});
+    const j1=parseJSON(await callAPI(c1));
+    if(!j1)throw new Error("プロファイルの解析に失敗しました。");
+    STATE.profile=j1;renderAll(true);
+
+    // Stage 2: differentials
+    outAppendStage("鑑別診断候補を検討しています…");
+    const c2=[];if(fileBlock)c2.push(fileBlock);
+    c2.push({type:"text",text:`${P_DDX}\n\n${body}\n\n（抽出済み要約：${esc(j1.summary||"")}）`});
+    const j2=parseJSON(await callAPI(c2));
+    STATE.ddx=j2||null;renderAll(false);
+  }catch(e){
+    outEl.innerHTML=`<div class="panel-b"><div class="err"><b>分析に失敗しました。</b><br>${e.message||"出力を解釈できませんでした。"}<br>本ツールはClaude.ai上で動作します。独自ドメイン配置時はバックエンド経由の接続が必要です。</div></div>`;
+  }finally{runEl.disabled=false;runEl.textContent="分析する";}
+};
+function outAppendStage(msg){
+  const s=document.createElement("div");s.className="stage";s.id="stage2";
+  s.innerHTML=`<div class="spin"></div>${msg}`;outEl.appendChild(s);
+}
+
+/* ===== 描画 ===== */
+function renderAll(profileOnly){
+  const d=STATE.profile, x=STATE.ddx;
+  let h=`<div class="panel-b">`;
+
+  // red flags（ddx優先、無ければprofileは持たない）
+  const flags=(x&&has(x.red_flags))?x.red_flags:[];
+  if(flags.length)h+=`<div class="alert"><div class="h">緊急性のある所見の可能性</div>AI出力に依存せず、医師が直ちに確認してください。<div class="flags">${flags.map(f=>`<span>${esc(f)}</span>`).join("")}</div></div>`;
+
+  // プロファイル
+  h+=`<div class="profile"><div class="pmeta">
+    <span class="sex">${esc(d.sex)||"性別不明"}</span>
+    <span class="age">${esc((d.age||"").replace("歳",""))||"—"}<small>歳</small></span>
+    ${has(d.age_band)?`<span class="band">${esc(d.age_band)}</span>`:""}
+   </div>${has(d.summary)?`<div class="psum">${esc(d.summary)}</div>`:""}</div>`;
+
+  // 臨床サマリ
+  h+=`<div class="block"><div class="bl"><span>臨床サマリ（カルテ抽出）</span></div>`;
+  h+=field("対象疾患・基礎疾患",has(d.conditions)?chips(d.conditions):null);
+  h+=field("今回の受診理由",d.visit_reason,true);
+  h+=field("症状",has(d.symptoms)?chips(d.symptoms):null);
+  h+=field("診断名（記載）",has(d.diagnoses)?d.diagnoses.map(y=>`${esc(y.name)}${y.type?`（${esc(y.type)}）`:""}`).join("、"):null,true);
+  h+=`</div>`;
+
+  // 鑑別診断候補
+  h+=`<div class="block"><div class="bl"><span>鑑別診断候補</span><span class="ref">診療支援・候補提示／確定は医師</span></div>`;
+  if(profileOnly){h+=`<div class="stage" style="padding:8px 0;border:0"><div class="spin"></div>検討中…</div>`;}
+  else if(x&&has(x.differentials)){
+    h+=x.differentials.map(dx=>{
+      const lk=dx.likelihood==="高"?"h":dx.likelihood==="中"?"m":"l";
+      return `<div class="ddx"><div class="ddx-h"><span class="nm">${esc(dx.name)}</span><span class="lk ${lk}">可能性 ${esc(dx.likelihood||"—")}</span></div><div class="ddx-b">
+        ${has(dx.supporting)?`<div class="seg"><div class="sk">根拠となる所見</div><ul>${dx.supporting.map(s=>`<li>${esc(s)}</li>`).join("")}</ul></div>`:""}
+        ${has(dx.against)?`<div class="seg against"><div class="sk">合致しない・要確認</div><ul>${dx.against.map(s=>`<li>${esc(s)}</li>`).join("")}</ul></div>`:""}
+        ${has(dx.confirm)?`<div class="seg"><div class="sk">確認・検査の候補</div><ul>${dx.confirm.map(s=>`<li>${esc(s)}</li>`).join("")}</ul></div>`:""}
+      </div></div>`;}).join("");
+    if(has(x.overall_note))h+=`<div class="est-note">${esc(x.overall_note)}</div>`;
+  }else{h+=`<div class="reserved">鑑別候補を取得できませんでした。カルテ情報が少ない場合があります。</div>`;}
+  h+=`</div>`;
+
+  // 確認すべき情報
+  if(x&&(has(x.additional_history)||has(x.suggested_tests))){
+    h+=`<div class="block"><div class="bl"><span>確認すべき情報</span></div>`;
+    if(has(x.additional_history)){h+=`<div class="field"><div class="fk">追加問診の候補</div><ul class="reclist">${x.additional_history.map(s=>`<li>${esc(s)}</li>`).join("")}</ul></div>`;}
+    if(has(x.suggested_tests)){h+=`<div class="field"><div class="fk">検査の候補</div><ul class="reclist">${x.suggested_tests.map(s=>`<li>${esc(s)}</li>`).join("")}</ul></div>`;}
+    h+=`</div>`;
+  }
+
+  // 処方（抽出）
+  if(has(d.prescriptions))h+=`<div class="block"><div class="bl"><span>処方（カルテ抽出）</span></div><table><thead><tr><th>薬剤</th><th>用量</th><th>用法</th><th>日数</th><th>目的</th></tr></thead><tbody>${d.prescriptions.map(y=>`<tr><td>${esc(y.drug)}</td><td>${esc(y.dose)}</td><td>${esc(y.freq)}</td><td>${esc(y.duration)}</td><td>${esc(y.purpose)}</td></tr>`).join("")}</tbody></table></div>`;
+
+  // 副作用リスク（参考）
+  if(has(d.adverse_risks))h+=`<div class="block"><div class="bl"><span>副作用リスク</span><span class="ref">一般的な参考・要医師確認</span></div><table><thead><tr><th>薬剤</th><th>主な副作用</th><th>重大な副作用</th><th>注意</th></tr></thead><tbody>${d.adverse_risks.map(y=>`<tr><td>${esc(y.drug)}</td><td>${esc(y.common)}</td><td>${esc(y.serious)}</td><td>${esc(y.caution)}</td></tr>`).join("")}</tbody></table></div>`;
+
+  // 想定治癒期間（参考）
+  const re=d.recovery_estimate||{};
+  if(has(re.days)||has(re.note))h+=`<div class="block"><div class="bl"><span>想定治癒期間</span><span class="ref">一般的な目安・要医師確認</span></div>${has(re.days)?`<div class="est"><span class="num">${esc(re.days)}</span></div>`:""}${has(re.note)?`<div class="est-note">${esc(re.note)}</div>`:""}</div>`;
+
+  // 注意事項（参考）
+  if(has(d.precautions))h+=`<div class="block"><div class="bl"><span>注意事項</span><span class="ref">参考</span></div><ul class="reclist">${d.precautions.map(y=>`<li>${esc(y)}</li>`).join("")}</ul></div>`;
+
+  // 経過観察
+  if(has(d.followup))h+=`<div class="block"><div class="bl"><span>経過観察・再診の目安</span></div>${field("",d.followup,true)}</div>`;
+
+  // バイタル・検査
+  const v=d.vitals||{};
+  if(Object.values(v).some(has)||has(d.labs)){
+    h+=`<div class="block"><div class="bl"><span>バイタル・検査値</span></div>`;
+    if(Object.values(v).some(has))h+=`<div style="display:flex;flex-wrap:wrap;gap:0 28px">${has(v.BT)?minifield("体温",v.BT):""}${has(v.BP)?minifield("血圧",v.BP):""}${has(v.PR)?minifield("脈拍",v.PR):""}${has(v.SpO2)?minifield("SpO2",v.SpO2):""}</div>`;
+    if(has(d.labs))h+=`<table style="margin-top:12px"><thead><tr><th>項目</th><th>値</th><th>単位</th><th>判定</th></tr></thead><tbody>${d.labs.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.value)}</td><td>${esc(l.unit)}</td><td class="${l.flag==='H'?'flag-h':l.flag==='L'?'flag-l':''}">${esc(l.flag||"")}</td></tr>`).join("")}</tbody></table>`;
+    h+=`</div>`;
+  }
+
+  // 過去症例（DB未接続）
+  h+=`<div class="block"><div class="bl"><span>過去の類似症例・この医師の過去判断</span><span class="ref">症例DB接続後に有効化</span></div><div class="reserved">名医の過去カルテを蓄積した症例DBを接続すると、この患者に類似した過去症例と、その際の判断・対応・転帰を根拠付きで表示します。現在は未接続です。</div></div>`;
+
+  if(!profileOnly){
+    // 文書ドラフト
+    h+=`<div class="block"><div class="bl"><span>診療文書ドラフト生成</span><span class="ref">要医師確認・確定前</span></div>
+      <div class="docbar"><button data-doc="紹介状">紹介状ドラフト</button><button data-doc="患者説明文">患者説明文</button><button data-doc="診療録サマリ">診療録サマリ</button></div>
+      <div class="docout" id="docout"></div></div>`;
+
+    // 医師確認欄
+    h+=`<div class="block"><div class="bl"><span>医師確認・修正メモ</span></div><textarea class="memo" id="memo" placeholder="修正・確認事項を記入（JSON保存に含まれます）"></textarea></div>`;
+
+    // meta
+    h+=`<div class="meta"><span class="conf">プロファイル自信度<b>${esc(d.confidence||"—")}</b>${x&&x.confidence?`／鑑別自信度<b>${esc(x.confidence)}</b>`:""}</span>
+      <button class="btn sec" style="width:auto;margin:0;padding:9px 16px" id="dl">JSONを保存</button></div>`;
+    if(has(d.source_notes))h+=`<div class="foot-note">根拠・補足：${esc(d.source_notes)}</div>`;
+    h+=`<div class="foot-note">識別情報（氏名・住所・電話・ID・生年月日）は出力に含めていません。鑑別候補・副作用・治癒期間・文書は診療補助情報であり、確定・治療・処方の判断は医師が行ってください。</div>`;
+  }
+
+  h+=`</div>`;
+  outEl.innerHTML=h;
+  if(!profileOnly)bindActions();
+}
+
+function bindActions(){
+  outEl.querySelectorAll("[data-doc]").forEach(b=>b.onclick=()=>genDoc(b.dataset.doc));
+  const dl=$("#dl");
+  if(dl)dl.onclick=()=>{
+    const out={profile:STATE.profile,differentials:STATE.ddx,doctor_memo:($("#memo")?$("#memo").value:"")};
+    const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="karte_support_"+Date.now()+".json";a.click();
+  };
+}
+
+async function genDoc(kind){
+  const box=$("#docout");box.style.display="block";
+  box.innerHTML=`<div class="stage" style="padding:6px 0;border:0"><div class="spin"></div>${esc(kind)}を生成しています…</div>`;
+  const ctx=JSON.stringify({profile:STATE.profile,differentials:STATE.ddx});
+  const prompt=`あなたは医師の診療を補助する文書作成アシスタントです。以下の症例情報（JSON）をもとに「${kind}」の下書きを作成してください。これは医師確認前の下書きです。
+条件：識別情報（氏名・住所・電話・ID）は含めない（宛先や氏名は〔　〕の空欄にする）。断定的な確定診断や治療指示は避け、記載事実と候補の範囲で書く。日本語、本文のみを出力（前置き・見出しラベル・コードフェンス無し）。${kind==="患者説明文"?"平易な言葉で、患者本人が読める表現にする。":""}
+--- 症例情報 ---
+${ctx}`;
+  try{
+    const text=await callAPI([{type:"text",text:prompt}]);
+    const body=text.replace(/```/g,"").trim();
+    box.innerHTML=`<div class="doch"><b>${esc(kind)}（下書き・要医師確認）</b><span class="copy" id="cp">コピー</span></div>${esc(body)}`;
+    $("#cp").onclick=()=>{navigator.clipboard.writeText(body);$("#cp").textContent="コピーしました";setTimeout(()=>{if($("#cp"))$("#cp").textContent="コピー";},1500);};
+  }catch(e){box.innerHTML=`<div class="err">${esc(kind)}の生成に失敗しました。${esc(e.message||"")}</div>`;}
+}
+
+function field(k,val,serif){
+  const empty=!has(val),isHtml=typeof val==="string"&&val.startsWith("<");
+  const body=empty?'<span class="fv empty">記載なし</span>':(isHtml?`<div class="fv">${val}</div>`:`<div class="fv${serif?' serif':''}">${esc(val)}</div>`);
+  return `<div class="field">${k?`<div class="fk">${k}</div>`:""}${body}</div>`;
+}
+function minifield(k,v){return `<div class="field" style="flex:1;min-width:120px"><div class="fk">${k}</div><div class="fv">${esc(v)}</div></div>`;}
+function chips(arr){return `<div class="chips">${arr.map(x=>`<span>${esc(x)}</span>`).join("")}</div>`;}
+</script>
+</body>
+</html>

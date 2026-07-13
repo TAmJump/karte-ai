@@ -1,0 +1,9 @@
+name = "karute-api"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# モデルを変える場合はここか、`wrangler secret` ではなく vars で上書き
+[vars]
+MODEL = "claude-sonnet-5"
+
+# ANTHROPIC_API_KEY は secret で登録する（wrangler secret put ANTHROPIC_API_KEY）
